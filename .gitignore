@@ -33,6 +33,6 @@
 
 # Misc
 *.pdb
-
+*.Ink
 build/
 settings.json
