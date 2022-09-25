@@ -15,7 +15,6 @@ struct file_info
 static file_info info_header;
 static file_info info_implementation;
 
-
 static std::string trim_whitespace(const std::string& str);
 static void read_file(const std::filesystem::path& file);
 static void read_directory(const std::filesystem::path& directory);
@@ -143,42 +142,30 @@ static file_info create_file_info(const std::filesystem::path& path)
             }
         }
     }
-
     fs.close();
     return result;
 }
 
-static void update_file_info(const std::vector<std::filesystem::path>& paths, file_info* out)
+static void update_file_info(const std::filesystem::path& path, file_info* out)
 {
-    for (const auto& path : paths)
-    {
-        file_info temp_info = create_file_info(path);
-        out->line_count += temp_info.line_count;
-        out->blank_count += temp_info.blank_count;
-        out->comment_count += temp_info.comment_count;
-    }
+    file_info temp_info = create_file_info(path);
+    out->line_count += temp_info.line_count;
+    out->blank_count += temp_info.blank_count;
+    out->comment_count += temp_info.comment_count;
 }
 
-static void read_file(const std::filesystem::path& file)
-{
-    std::vector<std::filesystem::path> header_paths;
-    std::vector<std::filesystem::path> implementation_paths;
-    header_paths.reserve(256);
-    implementation_paths.reserve(256);
-    
-    if (file.extension() == ".h" || file.extension() == ".hpp")
+static void read_file(const std::filesystem::path& path)
+{    
+    if (path.extension() == ".h" || path.extension() == ".hpp")
     {
         info_header.file_count++;
-        header_paths.push_back(file);
+        update_file_info(path, &info_header);
     }
-    else if(file.extension() == ".c" || file.extension() == ".cpp")
+    else if(path.extension() == ".c" || path.extension() == ".cpp")
     {
         info_implementation.file_count++;
-        implementation_paths.push_back(file);
+        update_file_info(path, &info_implementation);
     }
-
-    update_file_info(header_paths, &info_header);
-    update_file_info(implementation_paths, &info_implementation);
 }
 
 static void read_directory(const std::filesystem::path& directory)
