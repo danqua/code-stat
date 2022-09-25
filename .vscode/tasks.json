@@ -1,0 +1,30 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"command": "cl.exe",
+			"args": [
+				"/Zi",
+				"/FC",
+				"/std:c++17",
+				"/EHsc",
+				"/nologo",
+				"/Fe${workspaceFolder}\\build\\cstat.exe",
+				"${workspaceFolder}\\code\\main.cpp",
+				"/link User32.lib Kernel32.lib"
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler: cl.exe"
+		}
+	]
+}

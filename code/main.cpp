@@ -112,13 +112,13 @@ static file_info create_file_info(const std::filesystem::path& path)
         {
             result.blank_count++;
         }
-        else if (line.length() > 1)
+        else
         {
             if (line[0] == '/' && line[1] == '/')
             {
                 result.comment_count++;
             }
-            if (line[0] == '/' && line[1] == '*')
+            else if (line[0] == '/' && line[1] == '*')
             {
                 /* Check if the comment is a single lined comment like this one */
                 size_t end = line.find_last_of("*/");
@@ -128,7 +128,7 @@ static file_info create_file_info(const std::filesystem::path& path)
                 }
                 else
                 {
-                    // Move the file stream pointer until we find the closing comment signature
+                    // Move the file stream pointer until we find the closing comment literal
                     while (std::getline(fs, buffer))
                     {
                         std::string line = trim_whitespace(buffer);
@@ -137,10 +137,7 @@ static file_info create_file_info(const std::filesystem::path& path)
                     result.comment_count++;
                 }
             }
-        }
-        else
-        {
-            if (!inside_comment)
+            else
             {
                 result.line_count++;
             }

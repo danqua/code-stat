@@ -35,4 +35,4 @@
 *.pdb
 
 build/
-.vscode/
+settings.json
