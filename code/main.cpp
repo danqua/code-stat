@@ -4,15 +4,8 @@
 #include <iostream>
 #include <filesystem>
 
-enum class file_type
-{
-    header,
-    implementation
-};
-
 struct file_info
 {
-    file_type type;
     int file_count;
     int line_count;
     int comment_count;
@@ -22,6 +15,8 @@ struct file_info
 static file_info info_header;
 static file_info info_implementation;
 
+
+static std::string trim_whitespace(const std::string& str);
 static void read_file(const std::filesystem::path& file);
 static void read_directory(const std::filesystem::path& directory);
 static void handle_file_types(const std::filesystem::path file_path);
@@ -30,7 +25,6 @@ int main(int arg_count, char** args)
 {
     if (arg_count < 2) return 0;
 
-    
     printf("--------------------------------------------------------------------------------\n");
     printf("%s %12s %15s %15s %26s\n", "Language", "Files", "Blanks", "Comments", "Lines");
     printf("--------------------------------------------------------------------------------\n");
@@ -76,6 +70,18 @@ int main(int arg_count, char** args)
             total_line_count);
 }
 
+static std::string trim_whitespace(const std::string& str)
+{
+    const char* whitespace = " \t\n\r\f\v";
+    size_t begin = str.find_first_not_of(whitespace);
+    if (begin == std::string::npos)
+    {
+        return std::string{};
+    }
+    size_t end = str.find_last_not_of(whitespace);
+    return std::string{ str.substr(begin, end - begin + 1) };
+}
+
 static void handle_file_types(const std::filesystem::path file_path)
 {
     std::filesystem::file_status file_status = std::filesystem::status(file_path);
@@ -92,23 +98,68 @@ static void handle_file_types(const std::filesystem::path file_path)
     }
 }
 
-static file_info create_file_info(const std::filesystem::path& path, file_type type)
+static file_info create_file_info(const std::filesystem::path& path)
 {
     std::ifstream fs(path, std::ios::binary);
-    std::string line;
-
+    std::string buffer;
     file_info result = {};
-    result.type = type;
+    bool inside_comment = false;
     
-    while (std::getline(fs, line))
+    while (std::getline(fs, buffer))
     {
-        result.line_count++;
-        result.comment_count++;
-        result.blank_count++;
+        std::string line = trim_whitespace(buffer);
+        if (line.length() == 0)
+        {
+            result.blank_count++;
+        }
+        else if (line.length() > 1)
+        {
+            if (line[0] == '/' && line[1] == '/')
+            {
+                result.comment_count++;
+            }
+            if (line[0] == '/' && line[1] == '*')
+            {
+                /* Check if the comment is a single lined comment like this one */
+                size_t end = line.find_last_of("*/");
+                if (end != std::string::npos)
+                {
+                    result.comment_count++;
+                }
+                else
+                {
+                    // Move the file stream pointer until we find the closing comment signature
+                    while (std::getline(fs, buffer))
+                    {
+                        std::string line = trim_whitespace(buffer);
+                        size_t end = line.find_last_of("*/");
+                    }
+                    result.comment_count++;
+                }
+            }
+        }
+        else
+        {
+            if (!inside_comment)
+            {
+                result.line_count++;
+            }
+        }
     }
 
     fs.close();
     return result;
+}
+
+static void update_file_info(const std::vector<std::filesystem::path>& paths, file_info* out)
+{
+    for (const auto& path : paths)
+    {
+        file_info temp_info = create_file_info(path);
+        out->line_count += temp_info.line_count;
+        out->blank_count += temp_info.blank_count;
+        out->comment_count += temp_info.comment_count;
+    }
 }
 
 static void read_file(const std::filesystem::path& file)
@@ -129,17 +180,8 @@ static void read_file(const std::filesystem::path& file)
         implementation_paths.push_back(file);
     }
 
-    for (const auto& path : header_paths)
-    {
-        file_info temp_info = create_file_info(path, file_type::header);
-        info_header.line_count += temp_info.line_count;
-    }
-
-    for (const auto& path : implementation_paths)
-    {
-        file_info temp_info = create_file_info(path, file_type::implementation);
-        info_implementation.line_count += temp_info.line_count;
-    }
+    update_file_info(header_paths, &info_header);
+    update_file_info(implementation_paths, &info_implementation);
 }
 
 static void read_directory(const std::filesystem::path& directory)
